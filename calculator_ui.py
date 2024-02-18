@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import ttk
 from keypad import Keypad
 import math
 
@@ -10,6 +9,7 @@ class CalculatorUI(tk.Tk):
         super().__init__()
         self.title("Calculator")
         self.display = None
+        self.history_display = None
         self.state = 'init'
         self.history = []
 
@@ -18,17 +18,25 @@ class CalculatorUI(tk.Tk):
     def init_components(self):
         """Create components and layout the UI."""
         self.display = self.make_display()
+        self.history_display = self.make_history_display()
+        self.history_display.config(height=10, width=50)
         keypad = self.make_keypad()
         operators = self.make_operator_pad()
 
+        self.history_display.pack(side=tk.TOP, expand=True, fill=tk.X)
         self.display.pack(side=tk.TOP, expand=True, fill=tk.X)
         keypad.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
         operators.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
 
     def make_display(self) -> tk.Entry:
         """Create a display for text."""
-        display = tk.Entry(self, justify='right', state='disabled', font=('Arial', 14), fg='white', bg='black')
+        display = tk.Entry(self, justify='right', state='disabled', font=('Arial', 14))
         return display
+
+    def make_history_display(self) -> tk.Text:
+        """Create a display for history."""
+        history_display = tk.Text(self, state='disabled', font=('Arial', 12))
+        return history_display
 
     def make_keypad(self) -> Keypad:
         """Create a keypad containing buttons for the numeric keys."""
@@ -40,7 +48,7 @@ class CalculatorUI(tk.Tk):
         """Create a frame containing buttons for the operator keys."""
         frame = tk.Frame(self)
 
-        operators = ['DEL', 'CLR', '+', '-', '*', '/', '^', '=']
+        operators = ['DEL', 'CLR', '+', '-', '*', '/', '^', '=', '(', ')']
         functions = ['exp', 'ln', 'log10', 'log2', 'sqrt', 'mod']
         all_operators = operators + functions
 
@@ -57,12 +65,6 @@ class CalculatorUI(tk.Tk):
             frame.grid_columnconfigure(i, weight=1)
 
         return frame
-
-    def make_function_combobox(self) -> ttk.Combobox:
-        """Create a combobox for selecting mathematical functions."""
-        combobox = ttk.Combobox(self, values=['exp', 'ln', 'log10', 'log2', 'sqrt'])
-        combobox.bind("<<ComboboxSelected>>", self.handle_function_select)
-        return combobox
 
     def handle_function_select(self, event):
         """Handle selection of a mathematical function from the combobox."""
@@ -81,26 +83,19 @@ class CalculatorUI(tk.Tk):
         self.display.config(state='normal')
         if value == '=':
             try:
-                # Check if the expression contains 'log10' or 'log2'
-                if 'log10' in current_text:
-                    # Extract the number between 'log10' and ')' and evaluate the logarithm
-                    number = current_text[current_text.find('log10') + 6:current_text.find(')')]
-                    result = str(eval(f"math.log10({number})"))
-                elif 'log2' in current_text:
-                    # Extract the number between 'log2' and ')' and evaluate the logarithm
-                    number = current_text[current_text.find('log2') + 5:current_text.find(')')]
-                    result = str(eval(f"math.log2({number})"))
-                else:
-                    # Evaluate the expression using eval
-                    result = str(eval(f"{current_text}"))
+                # Replace 'log10' with 'math.log10', 'log2' with 'math.log2', and 'ln' with 'math.log'
+                current_text = current_text.replace('log10', 'math.log10')
+                current_text = current_text.replace('log2', 'math.log2')
+                current_text = current_text.replace('ln', 'math.log')
+                result = str(eval(current_text))
 
                 self.display.delete(0, tk.END)
                 self.display.insert(0, result)
-                self.history.append(current_text)
+                self.history_display.config(state='normal')
+                self.history_display.insert(tk.END, f"{current_text} = {result}\n{'-' * 50}\n")
+                self.history_display.config(state='disabled')
+                self.history.append((current_text, result))
             except Exception as e:
-                self.display.configure(bg='red')
-                self.after(100, lambda: self.display.configure(
-                    bg='black'))
                 self.display.delete(0, tk.END)
                 self.display.insert(0, "Error: " + str(e))
         elif value == '^':
@@ -110,6 +105,16 @@ class CalculatorUI(tk.Tk):
                 self.display.delete(len(current_text) - 1)
         elif value == 'CLR':
             self.display.delete(0, tk.END)
+            self.history_display.config(state='normal')
+            self.history_display.delete(1.0, tk.END)  # Clear the history display
+            self.history_display.config(state='disabled')
+            self.history.clear()  # Clear the history list
+        elif value == '(':
+            self.display.insert(tk.END, '(')
+        elif value == ')':
+            self.display.insert(tk.END, ')')
+        elif value == 'sqrt':
+            self.display.insert(tk.END, 'math.sqrt(')
         else:
             self.display.insert(tk.END, value)
         self.display.config(state='disabled')
@@ -119,6 +124,9 @@ class CalculatorUI(tk.Tk):
         current_text = self.display.get()
         self.display.config(state='normal')
 
+        if not current_text:
+            return  # Exit early if current_text is empty
+
         if function == 'exp':
             # Check if the previous character is a digit or a dot
             if current_text[-1].isdigit() or current_text[-1] == '.':
@@ -127,14 +135,21 @@ class CalculatorUI(tk.Tk):
                 self.display.insert(tk.END, '10**')
         elif function == 'log10':
             if current_text.endswith(('+', '-', '*', '/', '^', 'mod', 'exp', 'ln', 'log10', 'log2', 'sqrt')):
-                self.display.insert(tk.END, '10**(')
+                self.display.insert(tk.END, '10**')
             else:
-                self.display.insert(tk.END, '*10**(')
+                self.display.insert(tk.END, '*10**')
         elif function == 'log2':
-            if current_text.endswith(('+', '-', '*', '/', '^', 'mod', 'exp', 'ln', 'log10', 'log2', 'sqrt')):
-                self.display.insert(tk.END, '2**(')
+            self.display.insert(tk.END, 'math.log2(')
+        elif function == 'ln':
+            if current_text[-1].isdigit() or current_text[-1] == '.':
+                self.display.insert(tk.END, '*math.log')
             else:
-                self.display.insert(tk.END, '*2**(')
+                self.display.insert(tk.END, 'math.log(')
+        elif function == 'sqrt':
+            if not current_text or not current_text[-1].isdigit() or current_text[-1] == '.':
+                self.display.insert(tk.END, 'math.sqrt(')
+            elif current_text or current_text[-1].isdigit() or current_text[-1] == '.':
+                self.display.insert(tk.END, '*math.sqrt(')
         else:
             if current_text.endswith(('+', '-', '*', '/', '^', 'mod', 'exp', 'ln', 'log10', 'log2', 'sqrt')):
                 self.display.insert(tk.END, function + '(')
@@ -146,3 +161,8 @@ class CalculatorUI(tk.Tk):
     def run(self):
         """Starts the app and waits for events."""
         self.mainloop()
+
+
+if __name__ == "__main__":
+    app = CalculatorUI()
+    app.run()
