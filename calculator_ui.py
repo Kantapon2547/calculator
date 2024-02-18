@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from keypad import Keypad
+import math
 
 
 class CalculatorUI(tk.Tk):
@@ -39,8 +40,8 @@ class CalculatorUI(tk.Tk):
         """Create a frame containing buttons for the operator keys."""
         frame = tk.Frame(self)
 
-        operators = ['DEL', 'CLR', '+', '-', '*', '/', '^', 'mod']
-        functions = ['exp', 'ln', 'log10', 'log2', 'sqrt', '=']
+        operators = ['DEL', 'CLR', '+', '-', '*', '/', '^', '=']
+        functions = ['exp', 'ln', 'log10', 'log2', 'sqrt', 'mod']
         all_operators = operators + functions
 
         for i, operator in enumerate(all_operators):
@@ -80,7 +81,19 @@ class CalculatorUI(tk.Tk):
         self.display.config(state='normal')
         if value == '=':
             try:
-                result = str(eval(current_text))
+                # Check if the expression contains 'log10' or 'log2'
+                if 'log10' in current_text:
+                    # Extract the number between 'log10' and ')' and evaluate the logarithm
+                    number = current_text[current_text.find('log10') + 6:current_text.find(')')]
+                    result = str(eval(f"math.log10({number})"))
+                elif 'log2' in current_text:
+                    # Extract the number between 'log2' and ')' and evaluate the logarithm
+                    number = current_text[current_text.find('log2') + 5:current_text.find(')')]
+                    result = str(eval(f"math.log2({number})"))
+                else:
+                    # Evaluate the expression using eval
+                    result = str(eval(f"{current_text}"))
+
                 self.display.delete(0, tk.END)
                 self.display.insert(0, result)
                 self.history.append(current_text)
@@ -105,10 +118,29 @@ class CalculatorUI(tk.Tk):
         """Update the display field with a selected mathematical function."""
         current_text = self.display.get()
         self.display.config(state='normal')
-        if current_text.endswith(('+', '-', '*', '/', '^', 'mod', 'exp', 'ln', 'log10', 'log2', 'sqrt')):
-            self.display.insert(tk.END, function + '(')
+
+        if function == 'exp':
+            # Check if the previous character is a digit or a dot
+            if current_text[-1].isdigit() or current_text[-1] == '.':
+                self.display.insert(tk.END, '*10**')
+            else:
+                self.display.insert(tk.END, '10**')
+        elif function == 'log10':
+            if current_text.endswith(('+', '-', '*', '/', '^', 'mod', 'exp', 'ln', 'log10', 'log2', 'sqrt')):
+                self.display.insert(tk.END, '10**(')
+            else:
+                self.display.insert(tk.END, '*10**(')
+        elif function == 'log2':
+            if current_text.endswith(('+', '-', '*', '/', '^', 'mod', 'exp', 'ln', 'log10', 'log2', 'sqrt')):
+                self.display.insert(tk.END, '2**(')
+            else:
+                self.display.insert(tk.END, '*2**(')
         else:
-            self.display.insert(tk.END, '*' + function + '(')
+            if current_text.endswith(('+', '-', '*', '/', '^', 'mod', 'exp', 'ln', 'log10', 'log2', 'sqrt')):
+                self.display.insert(tk.END, function + '(')
+            else:
+                self.display.insert(tk.END, '*' + function + '(')
+
         self.display.config(state='disabled')
 
     def run(self):
