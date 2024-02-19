@@ -1,10 +1,9 @@
 import tkinter as tk
 from keypad import Keypad
-import math
+from calculate import Calculate
 
 
 class CalculatorUI(tk.Tk):
-
     def __init__(self):
         super().__init__()
         self.title("Calculator")
@@ -56,8 +55,9 @@ class CalculatorUI(tk.Tk):
             if operator in operators:
                 button = tk.Button(frame, text=operator, command=lambda o=operator: self.update_display(o))
             else:
-                button = tk.Button(frame, text=operator, command=lambda o=operator: self.update_display_with_function(o))
-            button.grid(row=i//2, column=i % 2, padx=2, pady=2, sticky="nsew")
+                button = tk.Button(frame, text=operator,
+                                   command=lambda o=operator: self.update_display_function(o))
+            button.grid(row=i // 2, column=i % 2, padx=2, pady=2, sticky="nsew")
 
         for i in range(4):
             frame.grid_rowconfigure(i, weight=1)
@@ -69,7 +69,7 @@ class CalculatorUI(tk.Tk):
     def handle_function_select(self, event):
         """Handle selection of a mathematical function from the combobox."""
         function = event.widget.get()
-        self.update_display_with_function(function)
+        self.update_display_function(function)
 
     def handle_keypress(self, event):
         """Handle button press events."""
@@ -83,12 +83,7 @@ class CalculatorUI(tk.Tk):
         self.display.config(state='normal')
         if value == '=':
             try:
-                # Replace 'log10' with 'math.log10', 'log2' with 'math.log2', and 'ln' with 'math.log'
-                current_text = current_text.replace('log10', 'math.log10')
-                current_text = current_text.replace('log2', 'math.log2')
-                current_text = current_text.replace('ln', 'math.log')
-                result = str(eval(current_text))
-
+                result = Calculate.calculate(current_text)  # Calculate the result
                 self.display.delete(0, tk.END)
                 self.display.insert(0, result)
                 self.history_display.config(state='normal')
@@ -113,13 +108,23 @@ class CalculatorUI(tk.Tk):
             self.display.insert(tk.END, '(')
         elif value == ')':
             self.display.insert(tk.END, ')')
+        elif value == 'exp':
+            self.display.insert(tk.END, 'exp(')
+        elif value == 'ln':
+            self.display.insert(tk.END, 'ln(')
+        elif value == 'log10':
+            self.display.insert(tk.END, 'log10(')
+        elif value == 'log2':
+            self.display.insert(tk.END, 'log2(')
+        elif value == 'mod':
+            self.display.insert(tk.END, 'mod(')
         elif value == 'sqrt':
-            self.display.insert(tk.END, 'math.sqrt(')
+            self.display.insert(tk.END, 'sqrt(')
         else:
             self.display.insert(tk.END, value)
         self.display.config(state='disabled')
 
-    def update_display_with_function(self, function):
+    def update_display_function(self, function):
         """Update the display field with a selected mathematical function."""
         current_text = self.display.get()
         self.display.config(state='normal')
@@ -128,35 +133,38 @@ class CalculatorUI(tk.Tk):
             return  # Exit early if current_text is empty
 
         if function == 'exp':
-            # Check if the previous character is a digit or a dot
-            if current_text[-1].isdigit() or current_text[-1] == '.':
-                self.display.insert(tk.END, '*10**')
-            else:
-                self.display.insert(tk.END, '10**')
+            result = Calculate.exp(float(current_text))
         elif function == 'log10':
-            if current_text.endswith(('+', '-', '*', '/', '^', 'mod', 'exp', 'ln', 'log10', 'log2', 'sqrt')):
-                self.display.insert(tk.END, '10**')
-            else:
-                self.display.insert(tk.END, '*10**')
+            result = Calculate.log10(float(current_text))
         elif function == 'log2':
-            self.display.insert(tk.END, 'math.log2(')
+            result = Calculate.log2(float(current_text))
         elif function == 'ln':
-            if current_text[-1].isdigit() or current_text[-1] == '.':
-                self.display.insert(tk.END, '*math.log')
-            else:
-                self.display.insert(tk.END, 'math.log(')
+            result = Calculate.ln(float(current_text))
         elif function == 'sqrt':
-            if not current_text or not current_text[-1].isdigit() or current_text[-1] == '.':
-                self.display.insert(tk.END, 'math.sqrt(')
-            elif current_text or current_text[-1].isdigit() or current_text[-1] == '.':
-                self.display.insert(tk.END, '*math.sqrt(')
+            # Get the last number in the current text
+            last_number = current_text.split()[-1]
+            # Insert the sqrt function with the last number
+            self.display.insert(tk.END, f'sqrt({last_number})')
+            # Update current_text with the modified text
+            current_text += f'sqrt({last_number})'
+            result = Calculate.sqrt(float(last_number))
+        elif function == 'mod':
+            # Get the last number in the current text
+            last_number = current_text.split()[-1]
+            # Insert the mod function with the last number
+            self.display.insert(tk.END, f'mod({last_number}, ')
+            result = last_number
         else:
-            if current_text.endswith(('+', '-', '*', '/', '^', 'mod', 'exp', 'ln', 'log10', 'log2', 'sqrt')):
-                self.display.insert(tk.END, function + '(')
-            else:
-                self.display.insert(tk.END, '*' + function + '(')
+            # Insert the function or operator directly
+            self.display.insert(tk.END, function)
+            return
 
+        # Insert the result into the display
+        self.display.insert(tk.END, str(result))
         self.display.config(state='disabled')
+
+        # Update the history
+        self.history.append((current_text, str(result)))
 
     def run(self):
         """Starts the app and waits for events."""
