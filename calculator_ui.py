@@ -216,8 +216,3 @@ class CalculatorUI(tk.Tk):
     def run(self):
         """Starts the app and waits for events."""
         self.mainloop()
-
-
-if __name__ == "__main__":
-    app = CalculatorUI()
-    app.run()
