@@ -133,38 +133,61 @@ class CalculatorUI(tk.Tk):
             return  # Exit early if current_text is empty
 
         if function == 'exp':
-            result = Calculate.exp(float(current_text))
+            last_number = current_text.split()[-1]
+            if last_number.isdigit():
+                result = Calculate.exp(float(last_number))
+                self.history.append(('exp', current_text, str(result)))
+            else:
+                self.display.insert(tk.END, function)
+                return
         elif function == 'log10':
-            result = Calculate.log10(float(current_text))
+            last_number = current_text.split()[-1]
+            if last_number.isdigit():
+                result = Calculate.log10(float(last_number))
+                self.history.append(('log10', current_text, str(result)))
+            else:
+                self.display.insert(tk.END, function)
+                return
         elif function == 'log2':
-            result = Calculate.log2(float(current_text))
+            last_number = current_text.split()[-1]
+            if last_number.isdigit():
+                result = Calculate.log2(float(last_number))
+                self.history.append(('log2', current_text, str(result)))
+            else:
+                self.display.insert(tk.END, function)
+                return
         elif function == 'ln':
-            result = Calculate.ln(float(current_text))
+            last_number = current_text.split()[-1]
+            if last_number.isdigit():
+                result = Calculate.ln(float(last_number))
+                self.history.append(('ln', current_text, str(result)))
+            else:
+                self.display.insert(tk.END, function)
+                return
         elif function == 'sqrt':
-            # Get the last number in the current text
             last_number = current_text.split()[-1]
-            # Insert the sqrt function with the last number
-            self.display.insert(tk.END, f'sqrt({last_number})')
-            # Update current_text with the modified text
-            current_text += f'sqrt({last_number})'
-            result = Calculate.sqrt(float(last_number))
+            if last_number.isdigit():
+                result = Calculate.sqrt(float(last_number))
+                self.history.append(('sqrt', current_text, str(result)))
+            else:
+                self.display.insert(tk.END, function)
+                return
         elif function == 'mod':
-            # Get the last number in the current text
             last_number = current_text.split()[-1]
-            # Insert the mod function with the last number
-            self.display.insert(tk.END, f'mod({last_number}, ')
-            result = last_number
+            if last_number.isdigit():
+                second_last_number = current_text.split()[-2]
+                result = Calculate.mod(float(second_last_number), float(last_number))
+                self.history.append(('mod', current_text, str(result)))
+            else:
+                self.display.insert(tk.END, function)
+                return
         else:
-            # Insert the function or operator directly
             self.display.insert(tk.END, function)
             return
 
-        # Insert the result into the display
+        self.display.delete(0, tk.END)
         self.display.insert(tk.END, str(result))
         self.display.config(state='disabled')
-
-        # Update the history
-        self.history.append((current_text, str(result)))
 
     def run(self):
         """Starts the app and waits for events."""
