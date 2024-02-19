@@ -8,12 +8,12 @@ class Calculate(tk.Tk):
     @staticmethod
     def calculate(expression):
         try:
-            # Replace 'log10' with 'math.log10', 'log2' with 'math.log2', and 'ln' with 'math.log'
+            expression = expression.replace('exp', 'math.exp')
             expression = expression.replace('log10', 'math.log10')
             expression = expression.replace('log2', 'math.log2')
             expression = expression.replace('ln', 'math.log')
             expression = expression.replace('sqrt', 'math.sqrt')
-            expression = expression.replace('mod', 'math.mod')
+            expression = expression.replace('mod', '%')
 
             # Parse the expression into an Abstract Syntax Tree (AST)
             node = ast.parse(expression, mode='eval')

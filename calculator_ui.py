@@ -29,12 +29,14 @@ class CalculatorUI(tk.Tk):
 
     def make_display(self) -> tk.Entry:
         """Create a display for text."""
-        display = tk.Entry(self, justify='right', state='disabled', font=('Arial', 14))
+        display = tk.Entry(self, justify='right', state='normal', font=('Arial', 14))
         return display
 
     def make_history_display(self) -> tk.Text:
         """Create a display for history."""
         history_display = tk.Text(self, state='disabled', font=('Arial', 12))
+        history_display.bind("<Button-1>", lambda event: self.recall_history(event))
+
         return history_display
 
     def make_keypad(self) -> Keypad:
@@ -80,10 +82,16 @@ class CalculatorUI(tk.Tk):
     def update_display(self, value):
         """Update the display field."""
         current_text = self.display.get()
-        self.display.config(state='normal')
+        display_state = self.display['state']
+
+        if display_state != 'normal':
+            self.display.config(state='normal')
+
+        last_char_is_digit_or_paren = current_text and (current_text[-1].isdigit() or current_text[-1] == ')')
+
         if value == '=':
             try:
-                result = Calculate.calculate(current_text)  # Calculate the result
+                result = Calculate.calculate(current_text)
                 self.display.delete(0, tk.END)
                 self.display.insert(0, result)
                 self.history_display.config(state='normal')
@@ -101,9 +109,9 @@ class CalculatorUI(tk.Tk):
         elif value == 'CLR':
             self.display.delete(0, tk.END)
             self.history_display.config(state='normal')
-            self.history_display.delete(1.0, tk.END)  # Clear the history display
+            self.history_display.delete(1.0, tk.END)
             self.history_display.config(state='disabled')
-            self.history.clear()  # Clear the history list
+            self.history.clear()
         elif value == '(':
             self.display.insert(tk.END, '(')
         elif value == ')':
@@ -120,9 +128,13 @@ class CalculatorUI(tk.Tk):
             self.display.insert(tk.END, 'mod(')
         elif value == 'sqrt':
             self.display.insert(tk.END, 'sqrt(')
+        elif last_char_is_digit_or_paren:
+            self.display.insert(tk.END, value)
         else:
             self.display.insert(tk.END, value)
-        self.display.config(state='disabled')
+
+        if display_state != 'normal':
+            self.display.config(state='disabled')
 
     def update_display_function(self, function):
         """Update the display field with a selected mathematical function."""
@@ -130,7 +142,7 @@ class CalculatorUI(tk.Tk):
         self.display.config(state='normal')
 
         if not current_text:
-            return  # Exit early if current_text is empty
+            return
 
         if function == 'exp':
             last_number = current_text.split()[-1]
@@ -173,11 +185,19 @@ class CalculatorUI(tk.Tk):
                 self.display.insert(tk.END, function)
                 return
         elif function == 'mod':
-            last_number = current_text.split()[-1]
-            if last_number.isdigit():
+            if len(current_text.split()) >= 2:
                 second_last_number = current_text.split()[-2]
-                result = Calculate.mod(float(second_last_number), float(last_number))
-                self.history.append(('mod', current_text, str(result)))
+                if second_last_number.isdigit():
+                    last_number = current_text.split()[-1]
+                    result = Calculate.mod(float(second_last_number), float(last_number))
+                    self.history.append(('mod', current_text, str(result)))
+                    self.display.delete(0, tk.END)
+                    self.display.insert(tk.END, str(result))
+                    self.display.config(state='disabled')
+                    return
+                else:
+                    self.display.insert(tk.END, function)
+                    return
             else:
                 self.display.insert(tk.END, function)
                 return
@@ -185,9 +205,13 @@ class CalculatorUI(tk.Tk):
             self.display.insert(tk.END, function)
             return
 
+    def recall_history(self, event):
+        """Recall an input or result to the display by clicking on it in the history."""
+        index = self.history_display.index(tk.CURRENT).split(".")[0]
+        selected_line = self.history_display.get(f"{index}.0", f"{index}.end")
+        selected_text = selected_line.split("=")[0].strip()
         self.display.delete(0, tk.END)
-        self.display.insert(tk.END, str(result))
-        self.display.config(state='disabled')
+        self.display.insert(0, selected_text)
 
     def run(self):
         """Starts the app and waits for events."""
