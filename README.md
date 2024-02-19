@@ -14,7 +14,7 @@
 3. Special keys: delete (DEL), clear (CLR), and parentheses ()
 4. History display for recalling previous calculations
 
-## UML Diagram
+## UML Class Diagram:
 
 ![UML Class Diagram](HW6.png)
 
